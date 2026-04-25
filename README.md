@@ -1,18 +1,22 @@
-# 星野远征 - 可分享版说明
+# 星野远征 - GitHub Pages 发布版
 
 这是一个纯前端 2D RPG 小游戏，不需要安装任何软件。
 
-## 发给别人玩
+## GitHub 发布
 
-最方便的方式：
+这个文件夹已经整理成 GitHub Pages 网站根目录。
 
-1. 发送 `starfield-rpg-share.zip`
-2. 对方解压后双击 `starfield-rpg.html`
-3. 游戏会直接在浏览器里打开
+发布后，别人可以通过 GitHub Pages 网址直接打开游戏。
 
-## 放到网站上
+如果仓库名是 `starfield-rpg`，GitHub 用户名是 `rola2005-klc`，网址通常会是：
 
-如果想让别人通过网址访问，把 `index.html`、`style.css`、`game.js` 这三个文件上传到任意静态网站服务即可，例如 GitHub Pages、Netlify、Vercel 或学校网页空间。
+`https://rola2005-klc.github.io/starfield-rpg/`
+
+## 文件
+
+- `index.html`：完整游戏，单文件可运行
+- `.nojekyll`：让 GitHub Pages 直接按静态网页发布
+- `.github/workflows/deploy-pages.yml`：推送到 main 后自动部署
 
 游戏不需要后端服务器，也不需要数据库。
 
