@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>星野远征 - 2D RPG</title>
+    <style>
+:root {
+  color-scheme: dark;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: #10131a;
+  color: #f8f4e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(80, 147, 137, 0.28), transparent 32%),
+    linear-gradient(135deg, #151b22 0%, #10131a 48%, #1d2022 100%);
+}
+
+.game-shell {
+  position: relative;
+  width: min(100vw, 1280px);
+  height: min(100vh, 720px);
+  min-height: 520px;
+  overflow: hidden;
+  background: #17211e;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.44);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  image-rendering: auto;
+}
+
+.hud {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: min(520px, calc(100% - 36px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(16, 19, 26, 0.74);
+  backdrop-filter: blur(10px);
+}
+
+.portrait {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid #f5d06f;
+  background:
+    radial-gradient(circle at 50% 35%, #ffe1b0 0 24%, transparent 25%),
+    radial-gradient(circle at 50% 72%, #4b8ed1 0 34%, transparent 35%),
+    linear-gradient(#283044, #121722);
+}
+
+.stats {
+  min-width: 0;
+  flex: 1;
+}
+
+.topline,
+.numbers {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  line-height: 1.2;
+}
+
+.topline {
+  margin-bottom: 7px;
+  font-size: 16px;
+}
+
+.topline span {
+  color: #f5d06f;
+  font-weight: 700;
+}
+
+.numbers {
+  margin-top: 8px;
+  color: #d6e3df;
+  font-size: 12px;
+}
+
+.bar {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.bar + .bar {
+  margin-top: 5px;
+}
+
+.bar span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  transition: width 160ms ease;
+}
+
+.bar.hp span {
+  background: linear-gradient(90deg, #dc4f4f, #ff8f70);
+}
+
+.bar.xp span {
+  background: linear-gradient(90deg, #4fa5dc, #8ee0c1);
+}
+
+.controls {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  display: flex;
+  gap: 8px;
+}
+
+.controls button,
+.dialog button {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: #fff7de;
+  background: rgba(22, 29, 38, 0.78);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.controls button {
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+}
+
+.controls button:hover,
+.dialog button:hover {
+  background: rgba(50, 71, 78, 0.88);
+}
+
+.dialog {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: min(760px, calc(100% - 36px));
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(245, 208, 111, 0.46);
+  border-radius: 8px;
+  background: rgba(18, 22, 28, 0.88);
+  backdrop-filter: blur(12px);
+}
+
+.speaker {
+  margin-bottom: 7px;
+  color: #f5d06f;
+  font-weight: 800;
+}
+
+.dialog p {
+  min-height: 48px;
+  margin: 0 0 14px;
+  color: #f4f0df;
+  line-height: 1.55;
+}
+
+.dialog button {
+  min-width: 84px;
+  height: 36px;
+  padding: 0 16px;
+  font-weight: 700;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 98px;
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100% - 36px));
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(245, 208, 111, 0.92);
+  color: #1f2117;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .game-shell {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+  }
+
+  .hud {
+    align-items: flex-start;
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
+    padding: 10px;
+  }
+
+  .portrait {
+    width: 46px;
+    height: 46px;
+  }
+
+  .controls {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .controls button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .numbers {
+    flex-wrap: wrap;
+  }
+
+  .dialog {
+    bottom: 72px;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <main class="game-shell">
+      <canvas id="game" width="1280" height="720" aria-label="星野远征游戏画面"></canvas>
+
+      <section class="hud" aria-label="角色状态">
+        <div class="portrait" aria-hidden="true"></div>
+        <div class="stats">
+          <div class="topline">
+            <strong id="heroName">星野旅人</strong>
+            <span id="level">Lv. 1</span>
+          </div>
+          <div class="bar hp"><span id="hpBar"></span></div>
+          <div class="bar xp"><span id="xpBar"></span></div>
+          <div class="numbers">
+            <span id="hpText">HP 100/100</span>
+            <span id="xpText">EXP 0/60</span>
+            <span id="questText">任务：击败 0/6 只史莱姆</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="游戏操作">
+        <button id="attackBtn" type="button" title="攻击附近怪物">⚔</button>
+        <button id="talkBtn" type="button" title="和附近 NPC 对话">💬</button>
+        <button id="centerBtn" type="button" title="视角回到角色">◎</button>
+      </section>
+
+      <section id="dialog" class="dialog hidden" aria-live="polite">
+        <div class="speaker" id="speaker"></div>
+        <p id="dialogText"></p>
+        <button id="nextDialog" type="button">继续</button>
+      </section>
+
+      <section id="toast" class="toast hidden" aria-live="polite"></section>
+    </main>
+
+    <script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const ui = {
+  level: document.getElementById("level"),
+  hpBar: document.getElementById("hpBar"),
+  xpBar: document.getElementById("xpBar"),
+  hpText: document.getElementById("hpText"),
+  xpText: document.getElementById("xpText"),
+  questText: document.getElementById("questText"),
+  dialog: document.getElementById("dialog"),
+  speaker: document.getElementById("speaker"),
+  dialogText: document.getElementById("dialogText"),
+  nextDialog: document.getElementById("nextDialog"),
+  toast: document.getElementById("toast"),
+  attackBtn: document.getElementById("attackBtn"),
+  talkBtn: document.getElementById("talkBtn"),
+  centerBtn: document.getElementById("centerBtn"),
+};
+
+const world = {
+  width: 2600,
+  height: 1800,
+  tile: 96,
+};
+
+const camera = { x: 0, y: 0, locked: true };
+const pointer = { x: 0, y: 0, worldX: 0, worldY: 0 };
+let lastTime = performance.now();
+let dialogQueue = [];
+let dialogIndex = 0;
+let toastTimer = 0;
+let attackCooldown = 0;
+
+const hero = {
+  x: 620,
+  y: 520,
+  radius: 20,
+  targetX: 620,
+  targetY: 520,
+  speed: 245,
+  level: 1,
+  xp: 0,
+  nextXp: 60,
+  hp: 100,
+  maxHp: 100,
+  damage: 24,
+  defeated: 0,
+  facing: 1,
+};
+
+const npcs = [
+  {
+    name: "守林人 阿岚",
+    x: 455,
+    y: 420,
+    color: "#e7b063",
+    lines: [
+      "旅人，鼠标点击地面就能前往那里。森林里最近出现了很多蓝史莱姆。",
+      "先击败 6 只史莱姆练练手吧。靠近怪物会自动交战，也可以点右上角的剑主动攻击。",
+      "升级会恢复生命并提高攻击力。等你强大起来，我们再去更远的遗迹。",
+    ],
+  },
+  {
+    name: "药师 林夏",
+    x: 980,
+    y: 800,
+    color: "#8ee0c1",
+    lines: [
+      "我可以帮你包扎伤口。冒险时记得保持移动，别被怪物围住。",
+      "你现在已经恢复了一些生命。继续打怪升级，地图东边有更强的敌人。",
+    ],
+    onTalk: () => {
+      hero.hp = Math.min(hero.maxHp, hero.hp + 35);
+      showToast("生命恢复 +35");
+    },
+  },
+  {
+    name: "铁匠 墨川",
+    x: 1820,
+    y: 1100,
+    color: "#d98572",
+    lines: [
+      "这片开放地图还有很多空地，后续可以加入装备、商店和副本入口。",
+      "我先给你的武器磨一磨。下一次攻击会更痛。",
+    ],
+    onTalk: () => {
+      hero.damage += 3;
+      showToast("攻击力 +3");
+    },
+  },
+];
+
+const obstacles = [
+  { x: 820, y: 335, w: 240, h: 120, color: "#31493c" },
+  { x: 1230, y: 635, w: 210, h: 170, color: "#263c3f" },
+  { x: 350, y: 1130, w: 300, h: 130, color: "#3d4637" },
+  { x: 1650, y: 420, w: 270, h: 140, color: "#2f4539" },
+  { x: 2030, y: 1350, w: 310, h: 120, color: "#33453f" },
+];
+
+const monsters = [];
+const monsterSpawns = [
+  [780, 690], [900, 960], [1160, 520], [1360, 940], [1510, 730], [1720, 1220],
+  [1960, 820], [2140, 520], [2270, 1120], [560, 1380], [1060, 1420], [1460, 1500],
+];
+
+function spawnMonsters() {
+  monsters.length = 0;
+  monsterSpawns.forEach(([x, y], index) => {
+    monsters.push({
+      id: index,
+      x,
+      y,
+      homeX: x,
+      homeY: y,
+      radius: 18,
+      hp: index > 7 ? 82 : 54,
+      maxHp: index > 7 ? 82 : 54,
+      speed: index > 7 ? 94 : 78,
+      damage: index > 7 ? 15 : 10,
+      xp: index > 7 ? 38 : 24,
+      alive: true,
+      hitFlash: 0,
+      wobble: Math.random() * Math.PI * 2,
+    });
+  });
+}
+
+spawnMonsters();
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(rect.width * dpr);
+  canvas.height = Math.floor(rect.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function screenToWorld(event) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = event.clientX - rect.left;
+  const sy = event.clientY - rect.top;
+  return { x: sx + camera.x, y: sy + camera.y };
+}
+
+function setHeroTarget(x, y) {
+  hero.targetX = clamp(x, hero.radius, world.width - hero.radius);
+  hero.targetY = clamp(y, hero.radius, world.height - hero.radius);
+  camera.locked = true;
+}
+
+function showToast(message) {
+  ui.toast.textContent = message;
+  ui.toast.classList.remove("hidden");
+  toastTimer = 2.4;
+}
+
+function startDialog(npc) {
+  if (npc.onTalk) npc.onTalk();
+  dialogQueue = npc.lines;
+  dialogIndex = 0;
+  ui.speaker.textContent = npc.name;
+  ui.dialogText.textContent = dialogQueue[dialogIndex];
+  ui.dialog.classList.remove("hidden");
+}
+
+function continueDialog() {
+  dialogIndex += 1;
+  if (dialogIndex >= dialogQueue.length) {
+    ui.dialog.classList.add("hidden");
+    dialogQueue = [];
+    return;
+  }
+  ui.dialogText.textContent = dialogQueue[dialogIndex];
+}
+
+function nearestNpc(maxDistance = 92) {
+  return npcs
+    .map((npc) => ({ npc, dist: distance(hero, npc) }))
+    .filter((entry) => entry.dist <= maxDistance)
+    .sort((a, b) => a.dist - b.dist)[0]?.npc;
+}
+
+function nearestMonster(maxDistance = 74) {
+  return monsters
+    .filter((monster) => monster.alive)
+    .map((monster) => ({ monster, dist: distance(hero, monster) }))
+    .filter((entry) => entry.dist <= maxDistance)
+    .sort((a, b) => a.dist - b.dist)[0]?.monster;
+}
+
+function attack(monster = nearestMonster()) {
+  if (!monster || attackCooldown > 0) return;
+  attackCooldown = 0.38;
+  monster.hp -= hero.damage;
+  monster.hitFlash = 0.16;
+  hero.facing = monster.x >= hero.x ? 1 : -1;
+
+  if (monster.hp <= 0) {
+    monster.alive = false;
+    hero.xp += monster.xp;
+    hero.defeated += 1;
+    showToast(`击败史莱姆，获得 ${monster.xp} EXP`);
+    checkLevelUp();
+    setTimeout(() => reviveMonster(monster), 9000);
+  }
+}
+
+function reviveMonster(monster) {
+  monster.x = monster.homeX + Math.random() * 90 - 45;
+  monster.y = monster.homeY + Math.random() * 90 - 45;
+  monster.hp = monster.maxHp;
+  monster.alive = true;
+}
+
+function checkLevelUp() {
+  while (hero.xp >= hero.nextXp) {
+    hero.xp -= hero.nextXp;
+    hero.level += 1;
+    hero.nextXp = Math.round(hero.nextXp * 1.42);
+    hero.maxHp += 18;
+    hero.hp = hero.maxHp;
+    hero.damage += 7;
+    showToast(`升级了！现在是 Lv.${hero.level}`);
+  }
+}
+
+function updateHero(dt) {
+  const dx = hero.targetX - hero.x;
+  const dy = hero.targetY - hero.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist > 2) {
+    const step = Math.min(dist, hero.speed * dt);
+    hero.x += (dx / dist) * step;
+    hero.y += (dy / dist) * step;
+    hero.facing = dx >= 0 ? 1 : -1;
+  }
+
+  hero.x = clamp(hero.x, hero.radius, world.width - hero.radius);
+  hero.y = clamp(hero.y, hero.radius, world.height - hero.radius);
+}
+
+function updateMonsters(dt) {
+  monsters.forEach((monster) => {
+    if (!monster.alive) return;
+    monster.wobble += dt * 4;
+    monster.hitFlash = Math.max(0, monster.hitFlash - dt);
+
+    const d = distance(monster, hero);
+    if (d < 235) {
+      const dx = hero.x - monster.x;
+      const dy = hero.y - monster.y;
+      monster.x += (dx / d) * monster.speed * dt;
+      monster.y += (dy / d) * monster.speed * dt;
+    } else if (d > 330) {
+      const dx = monster.homeX - monster.x;
+      const dy = monster.homeY - monster.y;
+      const homeDist = Math.hypot(dx, dy) || 1;
+      monster.x += (dx / homeDist) * (monster.speed * 0.35) * dt;
+      monster.y += (dy / homeDist) * (monster.speed * 0.35) * dt;
+    }
+
+    if (d < monster.radius + hero.radius + 6) {
+      hero.hp -= monster.damage * dt;
+      hero.targetX = hero.x;
+      hero.targetY = hero.y;
+      if (attackCooldown <= 0) attack(monster);
+    }
+  });
+
+  if (hero.hp <= 0) {
+    hero.hp = hero.maxHp;
+    hero.x = 620;
+    hero.y = 520;
+    setHeroTarget(hero.x, hero.y);
+    showToast("你被传送回营地并恢复了生命");
+  }
+}
+
+function updateCamera(dt) {
+  const view = canvas.getBoundingClientRect();
+  if (camera.locked) {
+    const tx = clamp(hero.x - view.width / 2, 0, world.width - view.width);
+    const ty = clamp(hero.y - view.height / 2, 0, world.height - view.height);
+    camera.x += (tx - camera.x) * Math.min(1, dt * 8);
+    camera.y += (ty - camera.y) * Math.min(1, dt * 8);
+  }
+}
+
+function updateUi() {
+  const hpPct = clamp((hero.hp / hero.maxHp) * 100, 0, 100);
+  const xpPct = clamp((hero.xp / hero.nextXp) * 100, 0, 100);
+  ui.level.textContent = `Lv. ${hero.level}`;
+  ui.hpBar.style.width = `${hpPct}%`;
+  ui.xpBar.style.width = `${xpPct}%`;
+  ui.hpText.textContent = `HP ${Math.ceil(hero.hp)}/${hero.maxHp}`;
+  ui.xpText.textContent = `EXP ${hero.xp}/${hero.nextXp}`;
+  ui.questText.textContent = hero.defeated >= 6
+    ? "任务完成：向守林人报告"
+    : `任务：击败 ${hero.defeated}/6 只史莱姆`;
+}
+
+function update(dt) {
+  attackCooldown = Math.max(0, attackCooldown - dt);
+  toastTimer = Math.max(0, toastTimer - dt);
+  if (toastTimer === 0) ui.toast.classList.add("hidden");
+  updateHero(dt);
+  updateMonsters(dt);
+  updateCamera(dt);
+  updateUi();
+}
+
+function drawGround() {
+  ctx.fillStyle = "#213229";
+  ctx.fillRect(0, 0, world.width, world.height);
+
+  for (let y = 0; y < world.height; y += world.tile) {
+    for (let x = 0; x < world.width; x += world.tile) {
+      const shade = (x / world.tile + y / world.tile) % 2 === 0 ? "#263a2f" : "#22362d";
+      ctx.fillStyle = shade;
+      ctx.fillRect(x, y, world.tile, world.tile);
+    }
+  }
+
+  ctx.strokeStyle = "rgba(245, 208, 111, 0.2)";
+  ctx.lineWidth = 18;
+  ctx.beginPath();
+  ctx.moveTo(210, 560);
+  ctx.bezierCurveTo(720, 440, 1070, 980, 1520, 880);
+  ctx.bezierCurveTo(1860, 806, 2070, 1010, 2380, 780);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(74, 143, 154, 0.48)";
+  ctx.beginPath();
+  ctx.ellipse(430, 1500, 310, 120, -0.12, 0, Math.PI * 2);
+  ctx.ellipse(2210, 270, 270, 95, 0.18, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawObstacle(obstacle) {
+  ctx.fillStyle = obstacle.color;
+  roundRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h, 18);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  for (let i = 0; i < 6; i += 1) {
+    ctx.beginPath();
+    ctx.arc(obstacle.x + 25 + i * 42, obstacle.y + 22 + (i % 2) * 52, 18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawNpc(npc) {
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(npc.x, npc.y + 23, 24, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = npc.color;
+  ctx.beginPath();
+  ctx.arc(npc.x, npc.y, 19, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#fff3cf";
+  ctx.beginPath();
+  ctx.arc(npc.x, npc.y - 11, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#192026";
+  ctx.fillRect(npc.x - 5, npc.y - 13, 3, 3);
+  ctx.fillRect(npc.x + 4, npc.y - 13, 3, 3);
+
+  drawName(npc.name, npc.x, npc.y - 36, npc === nearestNpc());
+}
+
+function drawMonster(monster) {
+  if (!monster.alive) return;
+  const squish = Math.sin(monster.wobble) * 3;
+  ctx.fillStyle = "rgba(0,0,0,0.24)";
+  ctx.beginPath();
+  ctx.ellipse(monster.x, monster.y + 19, 24, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = monster.hitFlash > 0 ? "#ffffff" : "#65cde3";
+  ctx.beginPath();
+  ctx.ellipse(monster.x, monster.y + squish, 23, 18 - squish * 0.35, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#263040";
+  ctx.beginPath();
+  ctx.arc(monster.x - 8, monster.y - 3, 3, 0, Math.PI * 2);
+  ctx.arc(monster.x + 8, monster.y - 3, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  const hpPct = clamp(monster.hp / monster.maxHp, 0, 1);
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  roundRect(monster.x - 25, monster.y - 35, 50, 6, 3);
+  ctx.fill();
+  ctx.fillStyle = "#ff756b";
+  roundRect(monster.x - 25, monster.y - 35, 50 * hpPct, 6, 3);
+  ctx.fill();
+}
+
+function drawHero() {
+  ctx.fillStyle = "rgba(0,0,0,0.26)";
+  ctx.beginPath();
+  ctx.ellipse(hero.x, hero.y + 23, 26, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(hero.x, hero.y);
+  ctx.scale(hero.facing, 1);
+  ctx.fillStyle = "#4b8ed1";
+  roundRect(-15, -1, 30, 32, 8);
+  ctx.fill();
+  ctx.fillStyle = "#ffe1b0";
+  ctx.beginPath();
+  ctx.arc(0, -15, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#2a3145";
+  ctx.beginPath();
+  ctx.arc(-5, -18, 2.2, 0, Math.PI * 2);
+  ctx.arc(6, -18, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#f5d06f";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(14, 0);
+  ctx.lineTo(33, -20);
+  ctx.stroke();
+  ctx.restore();
+
+  drawName("你", hero.x, hero.y - 44, true);
+}
+
+function drawName(text, x, y, active = false) {
+  ctx.font = active ? "700 14px system-ui" : "600 12px system-ui";
+  const width = ctx.measureText(text).width + 18;
+  ctx.fillStyle = active ? "rgba(245, 208, 111, 0.88)" : "rgba(18, 22, 28, 0.68)";
+  roundRect(x - width / 2, y - 15, width, 22, 6);
+  ctx.fill();
+  ctx.fillStyle = active ? "#1f2117" : "#f8f4e8";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y - 4);
+}
+
+function drawDestination() {
+  const d = Math.hypot(hero.targetX - hero.x, hero.targetY - hero.y);
+  if (d < 8) return;
+  ctx.strokeStyle = "rgba(245, 208, 111, 0.84)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(hero.targetX, hero.targetY, 14 + Math.sin(performance.now() / 130) * 2, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawMinimap(view) {
+  const w = 154;
+  const h = 106;
+  const x = view.width - w - 18;
+  const y = view.height - h - 18;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "rgba(16, 19, 26, 0.72)";
+  roundRect(x, y, w, h, 8);
+  ctx.fill();
+  ctx.fillStyle = "#2c4738";
+  roundRect(x + 9, y + 9, w - 18, h - 18, 5);
+  ctx.fill();
+
+  const sx = (w - 18) / world.width;
+  const sy = (h - 18) / world.height;
+  ctx.fillStyle = "#65cde3";
+  monsters.filter((monster) => monster.alive).forEach((monster) => {
+    ctx.fillRect(x + 9 + monster.x * sx - 1.5, y + 9 + monster.y * sy - 1.5, 3, 3);
+  });
+  ctx.fillStyle = "#f5d06f";
+  npcs.forEach((npc) => {
+    ctx.fillRect(x + 9 + npc.x * sx - 2, y + 9 + npc.y * sy - 2, 4, 4);
+  });
+  ctx.fillStyle = "#fff3cf";
+  ctx.beginPath();
+  ctx.arc(x + 9 + hero.x * sx, y + 9 + hero.y * sy, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  const view = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, view.width, view.height);
+  ctx.save();
+  ctx.translate(-camera.x, -camera.y);
+  drawGround();
+  obstacles.forEach(drawObstacle);
+  drawDestination();
+
+  const actors = [
+    ...npcs.map((npc) => ({ y: npc.y, draw: () => drawNpc(npc) })),
+    ...monsters.map((monster) => ({ y: monster.y, draw: () => drawMonster(monster) })),
+    { y: hero.y, draw: drawHero },
+  ].sort((a, b) => a.y - b.y);
+  actors.forEach((actor) => actor.draw());
+  ctx.restore();
+
+  drawWorldHints(view);
+  drawMinimap(view);
+}
+
+function drawWorldHints(view) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = "700 13px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const hint = nearestNpc() ? "点击 💬 与 NPC 对话" : nearestMonster() ? "点击 ⚔ 或靠近怪物攻击" : "鼠标点击地图移动";
+  const width = ctx.measureText(hint).width + 24;
+  ctx.fillStyle = "rgba(16, 19, 26, 0.62)";
+  roundRect(view.width / 2 - width / 2, 18, width, 30, 8);
+  ctx.fill();
+  ctx.fillStyle = "#f8f4e8";
+  ctx.fillText(hint, view.width / 2, 33);
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function gameLoop(now) {
+  const dt = Math.min(0.033, (now - lastTime) / 1000);
+  lastTime = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+canvas.addEventListener("mousemove", (event) => {
+  const worldPoint = screenToWorld(event);
+  pointer.worldX = worldPoint.x;
+  pointer.worldY = worldPoint.y;
+});
+
+canvas.addEventListener("click", (event) => {
+  const worldPoint = screenToWorld(event);
+  const clickedNpc = npcs.find((npc) => Math.hypot(npc.x - worldPoint.x, npc.y - worldPoint.y) < 42);
+  if (clickedNpc && distance(hero, clickedNpc) < 110) {
+    startDialog(clickedNpc);
+    return;
+  }
+
+  const clickedMonster = monsters.find((monster) => monster.alive && Math.hypot(monster.x - worldPoint.x, monster.y - worldPoint.y) < 42);
+  if (clickedMonster) {
+    setHeroTarget(clickedMonster.x, clickedMonster.y);
+    if (distance(hero, clickedMonster) < 82) attack(clickedMonster);
+    return;
+  }
+
+  setHeroTarget(worldPoint.x, worldPoint.y);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === " " || event.key.toLowerCase() === "f") {
+    event.preventDefault();
+    attack();
+  }
+  if (event.key.toLowerCase() === "e") {
+    const npc = nearestNpc();
+    if (npc) startDialog(npc);
+  }
+  if (event.key === "Escape") {
+    ui.dialog.classList.add("hidden");
+  }
+});
+
+ui.attackBtn.addEventListener("click", () => attack());
+ui.talkBtn.addEventListener("click", () => {
+  const npc = nearestNpc();
+  if (npc) startDialog(npc);
+  else showToast("再靠近一点就能对话");
+});
+ui.centerBtn.addEventListener("click", () => {
+  camera.locked = true;
+  showToast("视角已回到角色");
+});
+ui.nextDialog.addEventListener("click", continueDialog);
+window.addEventListener("resize", resizeCanvas);
+
+resizeCanvas();
+setHeroTarget(hero.x, hero.y);
+showToast("欢迎来到星野远征：点击地图移动");
+requestAnimationFrame(gameLoop);
+
+    </script>
+  </body>
+</html>
